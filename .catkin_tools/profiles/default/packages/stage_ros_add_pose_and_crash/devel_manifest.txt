@@ -1,0 +1,6 @@
+stage_ros-add_pose_and_crash
+/home/pablo/catkin_ws/devel/.private/stage_ros_add_pose_and_crash/cmake.lock /home/pablo/catkin_ws/devel/./cmake.lock
+/home/pablo/catkin_ws/devel/.private/stage_ros_add_pose_and_crash/share/stage_ros_add_pose_and_crash/cmake/stage_ros_add_pose_and_crashConfig-version.cmake /home/pablo/catkin_ws/devel/share/stage_ros_add_pose_and_crash/cmake/stage_ros_add_pose_and_crashConfig-version.cmake
+/home/pablo/catkin_ws/devel/.private/stage_ros_add_pose_and_crash/share/stage_ros_add_pose_and_crash/cmake/stage_ros_add_pose_and_crashConfig.cmake /home/pablo/catkin_ws/devel/share/stage_ros_add_pose_and_crash/cmake/stage_ros_add_pose_and_crashConfig.cmake
+/home/pablo/catkin_ws/devel/.private/stage_ros_add_pose_and_crash/lib/pkgconfig/stage_ros_add_pose_and_crash.pc /home/pablo/catkin_ws/devel/lib/pkgconfig/stage_ros_add_pose_and_crash.pc
+/home/pablo/catkin_ws/devel/.private/stage_ros_add_pose_and_crash/lib/stage_ros_add_pose_and_crash/stageros /home/pablo/catkin_ws/devel/lib/stage_ros_add_pose_and_crash/stageros

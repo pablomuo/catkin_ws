@@ -1,0 +1,33 @@
+<launch>
+    <arg name="agent_name"/>
+    <arg name="init_pose"/>
+
+    <node name="spawn_model" pkg="gazebo_ros" type="spawn_model"
+     args="$(arg init_pose) -urdf -param /robot_description -model $(arg agent_name)"
+     respawn="false" output="screen" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher"
+          name="robot_state_publisher" output="screen"/>
+
+    <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="pointcloud_to_laserscan">
+
+        <remap from="/agent1/cloud_in" to="/agent1/camera/depth/points"/>
+        <remap from="/agent1/scan" to="/agent1/camera"/>
+        <rosparam>
+            target_frame: "agent1_tf/camera_link"
+            transform_tolerance: 0.01
+            min_height: 0.0
+            max_height: 1.0
+            angle_min: -1.55 
+            angle_max:  1.55 
+            angle_increment: 0.25833333333 
+            scan_time: 1.0/30.0
+            range_min: 0.00
+            range_max: 3.5
+            concurrency_level: 1
+            use_inf: true
+        </rosparam>
+  </node>
+  <node pkg="multi_robot" type="camera_sync_1cam_laser.py" name="camera_sync_1cam_laser" output="screen" />
+  <!-- <node pkg="multi_robot" type="camera_sync1.py" name="camera_sync1" output="screen" /> -->
+</launch>

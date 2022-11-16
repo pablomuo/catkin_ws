@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="ddrl_ge" type="camera_sync.py" name="camera_sync" output="screen">
+    </node>
+</launch>

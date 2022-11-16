@@ -1,0 +1,305 @@
+#!/usr/bin/env python
+#################################################################################
+#Copyright 2022 Elizabeth
+#
+#Licensed under the Apache License, Version 2.0 (the "License");
+#you may not use this file except in compliance with the License.
+#You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+#Unless required by applicable law or agreed to in writing, software
+#WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#distributed under the License is distributed on an "AS IS" BASIS,
+#See the License for the specific language governing permissions and
+#limitations under the License.
+#################################################################################
+import rospy
+import os
+# os.environ["CUDA_VISIBLE_DEVICES"]="-1"
+import json
+import numpy as np
+import random
+import time
+import pickle
+
+import tensorflow as tf
+
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+from environment_v1 import Behaviour
+from collections import deque
+from std_msgs.msg import Float32MultiArray
+from robot_v1 import Robot
+# from tensorflow.keras.models import Sequential, load_model
+# from tensorflow.keras.optimizers import Adam, RMSprop
+# from tensorflow.keras.layers import Dense, Dropout, Activation
+# from tensorflow.keras.callbacks import History, TerminateOnNaN, EarlyStopping, ReduceLROnPlateau
+from keras.models import Sequential, load_model
+from keras.optimizers import Adam,RMSprop
+from keras.layers import Dense, Dropout, Activation
+from keras.callbacks import History, TerminateOnNaN, EarlyStopping, ReduceLROnPlateau
+import keras
+import tensorflow as tf
+
+gpu_options = tf.GPUOptions(allow_growth=True)
+sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+keras.backend.tensorflow_backend.set_session(sess)
+
+from numba import cuda
+tf.logging.set_verbosity(tf.logging.ERROR)
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+# ------------------------------------------
+
+# Toda la parte de --> class ReinforcementNetwork(object): ELIMINADA
+    
+# ------------------------------------------
+
+
+if __name__ == '__main__':
+        # gpu =tf.config.list_physical_devices('GPU')
+        # if gpu:
+        #     tf.config.set_visible_devices(gpu[0],'GPU')
+    #
+    # tf.compat.v1.disable_eager_execution()
+    #
+    # gpus = tf.config.experimental.list_physical_devices('GPU')
+    # for device in gpus:
+    #     tf.config.experimental.set_memory_growth(device, True)
+    # # # cpus = tf.config.experimental.list_physical_devices('CPU')
+    # if gpus:
+    #   # Restrict TensorFlow to only use the first GPU
+    #   try:
+    #     tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
+    #     logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+    #     print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
+    #   except RuntimeError as e:
+    #   # Visible devices must be set before GPUs have been initialized
+    #     print(e)
+    rospy.init_node('network_v1')
+    # rate = rospy.Rate(10)
+    state_size   = 28
+    action_size  = 6
+    episodes     = 19000
+    ep           = 0
+    global_step  = 0
+
+    env          = Behaviour()
+    robot        = Robot(action_size,env)
+    agent        = ReinforcementNetwork(state_size, action_size,episodes)
+    start_time   = time.time()
+    agent.get_Pa()
+    #with tf.device('/GPU:0'):
+    for e in range(agent.load_episode +1, episodes):
+
+        ep += 1
+        done = False
+        finish = False
+        robot.reset()
+        env.reset_gazebo()
+        time.sleep(0.5)
+        state_initial     = env.reset(robot.robot_position_x, robot.robot_position_y)
+        state, _          = robot.state
+        state             = np.asarray(state)
+        score             = 0
+        cont              = 0
+        robot.diff_time   = 0.20
+        # print("START",robot.process)
+        # robot.stand=True
+        for t in range(agent.episode_step):
+            robot.step = t
+            action,evolve_rule = agent.get_action(state)
+            print(evolve_rule,robot.process)
+            # print(np.rad2deg(robot.heading
+            if agent.Pa >agent.start_or:
+                if robot.process =="collision":
+                    break
+                else:
+                    pass
+
+            if evolve_rule or robot.process =="collision":
+                action = robot.evolve()
+                robot.perform_action(action)
+                next_state, reward, done = robot.next_values(action)
+                # print("evolve step", action)
+
+            else:
+                robot.perform_action(action)
+                print("action nn: ", action)
+                # print(robot.cmd_vel)
+                next_state, reward, done = robot.next_values(action)
+            # print("1",robot.process)
+            agent.tf_rewards=reward
+            #print(reward)
+            next_state[0:24]=next_state[0:24]/3.5
+            # next_state[24]=(next_state[24]+np.pi)/2*np.pi
+            next_state[25]= next_state[25]/env._goal_distance_initial
+            next_state[26]=next_state[26]/3.5
+            next_state[27]=next_state[27]/24.0           
+
+            agent.append_D(state, action, reward, next_state, done)
+            agent.append_EPS(state, action, reward, next_state, done)
+            if not os.path.exists(agent.dirPath+"_map"+'.txt'):
+                with open(agent.dirPath+"_map"+'.txt','a') as outfile:
+                    outfile.write("state".rjust(150," ")+"   "+"robot_x".rjust(10," ")\
+                    +"   "+"robot_y".rjust(10," ")+"   "+"target_x".rjust(10," ")\
+                    +"   "+"target_y".rjust(10," "))
+            with open(agent.dirPath +"_map"+ '.txt', 'a') as outfile:
+                outfile.write(' '.join(np.array(state).astype(str))+"   "\
+                +"{: .3e}".format(robot.robot_position_x)+"   "\
+                +"{: .3e}".format(robot.robot_position_y)+"   "\
+                +"{: .3e}".format(env.goal_x)+"   "+"{: .3e}".format(env.goal_y) +"\n")
+
+            if not os.path.exists(agent.dirPath +"_value"+'.txt'):
+                with open(agent.dirPath +"_value"+'.txt', 'a') as outfile:
+                    outfile.write("step".rjust(8," ")+ "   "+"episode".rjust(8," ")\
+                    + "   "+"a".rjust(1," ")+"   "+"   "+"reward".rjust(10," ")\
+                    +"   "+"score".rjust(10," ")+"   "+"robot_x".rjust(10," ")\
+                    +"   "+"robot_y".rjust(10," ")+"  "+"goal_x".rjust(10," ")\
+                    +"   "+"goal_y".rjust(10," ") +"   " +"e_r".rjust(1," ")\
+                    +"   "+"q_value".rjust(8," ")+"   "+"time".rjust(10," ")\
+                    +"   " +"win".rjust(4," ")+"   " +"fail".rjust(4," ")\
+                    +"   " +"ep".rjust(10," ")\
+                    +"   "+"t_h".rjust(2," ")+"   "+"t_m".rjust(2," ")\
+                    +"   "+"t_s".rjust(2," ")+"\n")
+
+            m, s = divmod(int(time.time() - start_time), 60)
+            h, m = divmod(m, 60)
+            with open(agent.dirPath +"_value"+'.txt', 'a') as outfile:
+                outfile.write("{:8d}".format(t)+"   "+"{:8d}".format(ep)\
+                +"   "+str(action)+"   "+"   "+"{: .3e}".format(reward)\
+                +"   "+"{: .3e}".format(score)+"   "+"{: .3e}".format(robot.robot_position_x)\
+                +"   "+"{: .3e}".format(robot.robot_position_y)+"   "+"{: .3e}".format(env.goal_x) \
+                +"   "+"{: .3e}".format(env.goal_y) +"   " +str(int(evolve_rule))\
+                +"   "+"{: .3e}".format(np.max(agent.q_value))+"   "+"{: .3e}".format(env.best_time)\
+                +"   " +str(int(env.get_goalbox))+"   " +str(int(done))\
+                +"   "+"{: .3e}".format(agent.Pa)\
+                +"   "+"{:8d}".format(h)+"   "+"{:02d}".format(m) \
+                +"   "+"{:02d}".format(s) +"\n")
+
+            if  env.get_goalbox ==True:
+                if env.best_time > 0.85:
+                    agent.best_state()
+                else:
+                    agent.winning_state()
+
+            if  env.get_goalbox ==True or done==True:
+                m, s = divmod(int(time.time() - start_time), 60)
+                h, m = divmod(m, 60)
+                if not os.path.exists(agent.dirPath +"_time_goal"+'.txt'):
+                    with open(agent.dirPath +"_time_goal"+'.txt', 'a') as outfile:
+                        outfile.write("episode".rjust(8," ")+ "   "+"   "+"m".rjust(10," ")\
+                        +"   "+"robot_x".rjust(10," ")\
+                        +"   "+"robot_y".rjust(10," ")+"  "+"goal_x".rjust(10," ")\
+                        +"   "+"goal_y".rjust(10," ") \
+                        +"   "+"g".rjust(4," ")\
+                        +"   " +"f".rjust(4," ")\
+                        +"   "+"t_h".rjust(4," ")+"   "+"t_m".rjust(4," ")\
+                        +"   "+"t_s".rjust(4," ")+"   " +"ep".rjust(4," ")+"\n")
+                with open(agent.dirPath +"_time_goal"+'.txt', 'a') as outfile:
+                    outfile.write("{:8d}".format(ep)+"   "+"{:8d}".format(len(agent.memory_D))\
+                    +"   "+"{: .3e}".format(robot.robot_position_x)\
+                    +"   "+"{: .3e}".format(robot.robot_position_y)+"   "+"{: .3e}".format(env.goal_x) \
+                    +"   "+"{: .3e}".format(env.goal_y) \
+                    +"   " +str(int(env.get_goalbox))+"   " +str(int(done))\
+                    +"   "+"{:8d}".format(h)+"   "+"{:02d}".format(m) \
+                    +"   "+"{:02d}".format(s)\
+                    +"   "+"{: .3e}".format(agent.Pa)+"\n")
+
+                if agent.Pa <agent.start_or:
+                    # Calculate the distance to the target from the agent's last position
+                    env.get_goalbox = False
+                    env.goal_x, env.goal_y = env.target_position.getPosition(True, delete=True)
+                    robot.last_heading=list()
+                    # print(robot.last_heading)
+                    env.get_Distance_goal(robot.robot_position_x,robot.robot_position_y)
+                    # print("initial: ",robot.heading)
+
+                else:
+                    # Returns to the agent's origin position and calculates the distance to the target
+                    env.get_goalbox = False
+                    robot.reset()
+                    env.reset_gazebo()
+                    robot.last_heading=list()
+
+                    env.goal_x, env.goal_y = env.target_position.getPosition(True, delete=True)
+                    env.get_Distance_goal(robot.robot_position_x,robot.robot_position_y)
+                # robot.stand=True
+            # print("2",robot.process)
+
+            if  len(agent.memory_D) > (agent.train_start):
+            # if (agent.Pa >=agent.lim_train) and (len(agent.memory_D) > 1*(agent.train_start)):
+            # if agent.Pa >=agent.lim_q_i-0.006:
+                # print(agent.Pa)
+                #agent.train_model()
+                print("training")
+            score += reward
+            state = next_state
+            if e % 5 == 0:
+                agent.q_model.save(agent.dirPath + str(e)+'_q_model' +'.h5')
+                agent.target_model.save(agent.dirPath + str(e) +'_target_model'+'.h5')
+                param_keys = ['Pa','Pbest']
+                param_values = [agent.Pa, agent.Pbest]
+                param_dictionary = dict(zip(param_keys, param_values))
+                with open(agent.dirPath + str(e) + '.json', 'w') as outfile:
+                    json.dump(param_dictionary, outfile)
+            # print("t" ,t)
+            if t >= 500:
+                rospy.loginfo("Time out!!")
+                # robot.stand=True
+                finish=True
+                done = True
+            # print("3",robot.process)
+
+            if done:
+                agent.update_target_network()
+
+                if finish:
+                    finish = False
+                    break
+
+                if evolve_rule:
+                    # print("I am a popo")
+                    robot.process="collision"
+                    ep +=1
+                    cont+=1
+
+                    if agent.Pbest < agent.Pbest_max:
+                        agent.Pbest /= agent.increase_factor
+                    elif agent.Pbest > agent.Pbest_max:
+                        agent.Pbest = agent.Pbest_max
+                        agent.Pa = agent.Pbest_max
+                    else:
+                        agent.Pbest = agent.Pbest
+                    agent.get_Pa()
+                    robot.last_heading=list()
+
+                    # print(robot.last_heading)
+                    env.reset(robot.robot_position_x,robot.robot_position_y)
+                    # print("initial: ",robot.heading)
+
+                    if cont > 20:
+                        cont=0
+                        break
+                else:
+                    break
+            # print("4",robot.process)
+
+
+            global_step += 1
+            if global_step % agent.target_update == 0:
+                agent.update_target_network()
+
+        if agent.Pbest < agent.Pbest_max:
+            agent.Pbest /= agent.increase_factor
+
+        elif agent.Pbest > agent.Pbest_max:
+            agent.Pbest = agent.Pbest_max
+            agent.Pa = agent.Pbest_max
+        else:
+            agent.Pbest = agent.Pbest
+        agent.get_Pa()

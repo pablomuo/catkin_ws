@@ -1,0 +1,5 @@
+camera_values
+/home/pablo/catkin_ws/devel/.private/camera_values/cmake.lock /home/pablo/catkin_ws/devel/./cmake.lock
+/home/pablo/catkin_ws/devel/.private/camera_values/share/camera_values/cmake/camera_valuesConfig.cmake /home/pablo/catkin_ws/devel/share/camera_values/cmake/camera_valuesConfig.cmake
+/home/pablo/catkin_ws/devel/.private/camera_values/share/camera_values/cmake/camera_valuesConfig-version.cmake /home/pablo/catkin_ws/devel/share/camera_values/cmake/camera_valuesConfig-version.cmake
+/home/pablo/catkin_ws/devel/.private/camera_values/lib/pkgconfig/camera_values.pc /home/pablo/catkin_ws/devel/lib/pkgconfig/camera_values.pc
