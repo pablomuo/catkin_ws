@@ -1,0 +1,1 @@
+/home/pablo/catkin_ws/devel/.private/ddrl_ge/lib/pkgconfig/ddrl_ge.pc

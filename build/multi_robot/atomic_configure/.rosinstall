@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/pablo/catkin_ws/devel/.private/multi_robot/setup.sh

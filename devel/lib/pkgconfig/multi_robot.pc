@@ -1,0 +1,1 @@
+/home/pablo/catkin_ws/devel/.private/multi_robot/lib/pkgconfig/multi_robot.pc

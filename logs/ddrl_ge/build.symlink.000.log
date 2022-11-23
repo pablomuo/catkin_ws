@@ -1,0 +1,3 @@
+Symlinking /home/pablo/catkin_ws/devel/share/ddrl_ge/cmake/ddrl_geConfig.cmake
+Symlinking /home/pablo/catkin_ws/devel/share/ddrl_ge/cmake/ddrl_geConfig-version.cmake
+Symlinking /home/pablo/catkin_ws/devel/lib/pkgconfig/ddrl_ge.pc

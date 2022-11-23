@@ -44,8 +44,16 @@ class Robot(object):
 
     def __init__(self, number_action, environment, min_action_time=0.25):
         self.laser_scan                 = False
-        self.camera1                    = False
-        self.camara2                    = True
+        self.camera1                    = True
+        self.camara2                    = False
+        self.num_laseres                = 0
+        self.action_done                = 1
+        self.action_done_past           = 1
+        self.scan_data_past             = 24*[0]
+        self.cont_act                   = 0
+        self.cont                       = 0
+        self.vel_lineal                 = 0
+        self.vel_ang                    = 0
         self.number_action              = number_action
         self.environment                = environment
         self.reset_proxy                = rospy.ServiceProxy('gazebo/reset_simulation', Empty)
@@ -262,9 +270,21 @@ class Robot(object):
         Calculates the time needed to excecute the actions
         and executes them
         '''
+        # self.cont_act+=1
+        # lrn= 7
+        # if self.cont_act < lrn:
+        #     action = 1
+        # elif self.cont_act >=lrn and self.cont_act <=lrn+5:
+        #     action = 2
+        # elif self.cont_act > lrn+5 and self.cont_act <=lrn+10:
+        #     action = 3
+        # elif self.cont_act >lrn+10:
+        #     action = 2  
+       
 
         self.diff_time = time.time()-self.__action_time
         print(self.diff_time)
+
         # if diff_time< self.__min_action_time:
             # print("sleeping:",self.__min_action_time-diff_time)
             # time.sleep(self.__min_action_time-diff_time)
@@ -282,11 +302,15 @@ class Robot(object):
         if action == self.__backward_action:
             vel_cmd.linear.x = -0.15
             vel_cmd.angular.z = 0
+            self.vel_lineal = -0.15
+            self.vel_ang = 0
 
         elif action == self.__forward_action:
             vel_cmd.linear.x = 0.15
             vel_cmd.angular.z = 0
             self.stand=False
+            self.vel_lineal = 0.15
+            self.vel_ang = 0
 
         else:
             # if not self.stand:
@@ -296,12 +320,19 @@ class Robot(object):
             #     # vel_cmd.linear.x = 0
             vel_cmd.linear.x = 0.12
             vel_cmd.angular.z = ang_vel
+            self.vel_lineal = 0.12
+            self.vel_ang = ang_vel
 
         # if self.last_win:
         #     vel_cmd.linear.x = 0
             # vel_cmd.angular.z = ang_vel
             self.vel_cmd=vel_cmd
         self.pub_cmd_vel.publish(vel_cmd)
+        
+        
+        self.action_done = action
+        print("accion", action)
+        # print("angulo", ang_vel)
 
         # if self.environment.get_goalbox or self.environment.collision or self.cn<10:
         #      self.last_win=True
@@ -323,7 +354,8 @@ class Robot(object):
             while d_laser is None:
                 try:
                     #d_laser = rospy.wait_for_message('/scan', LaserScan, timeout=5)
-                    d_laser = rospy.wait_for_message('/camera_sync_1cam_laser', LaserScan, timeout=5)
+                    # d_laser = rospy.wait_for_message('/camera_sync_1cam_laser', LaserScan, timeout=5)
+                    d_laser = rospy.wait_for_message('/camera_laser_sync', LaserScan, timeout=5)  
                 except:
                     pass
             scan_laser = d_laser
@@ -447,7 +479,7 @@ class Robot(object):
                 while data is None:
                     try:
                         #data = rospy.wait_for_message('/camera_sync_1cam', LaserScan, timeout=5)
-                        data = rospy.wait_for_message('/camera_sync_1cam_laser', LaserScan, timeout=5)
+                        data = rospy.wait_for_message('/camera_laser_sync', LaserScan, timeout=5)
                     except:
                         pass
 
@@ -460,16 +492,139 @@ class Robot(object):
                 for i in range(len(scan.ranges)):             
                     scan_data.append(scan.ranges[i])       #se cogen los 48 valores y se envían, fuera se separarán
 
+                self.num_laseres = scan_data[48]
+
                 if np.any(np.isnan(np.array(scan_data))):
                     raise Exception("it's nan sensor")
+
+                
+                val_a_cambiar = int(math.floor(self.num_laseres/2))+1     #indica cual es la primera posicion a modificar, si es camara de 90 grados, 7 laseres, primera posicion scan_data[4]
+                if sum(self.scan_data_past) != 0:
+                    
+                    dist_rec = self.diff_time*abs(self.vel_lineal)     #distancia que recorre --> tiempo x velocidad lineal
+                    print("dist_rec", dist_rec)
+                    if self.vel_ang != 0:
+                        radio = abs(self.vel_lineal/self.vel_ang)
+                        dist_ang = dist_rec/radio                      # desplazamiento angular en radianes
+                        ang1 = (math.radians(180) - dist_ang)/2        # el traingulo formado por dos puntos de una circunferencias es siempre isosceles (2 lados son el radio)
+                        ang2 = math.radians(90) - ang1                 # queremos el angulo complementario de ang1
+                        dist_lineal = self.get_point_position(radio, radio, dist_ang, 0)
+                    else:
+                        ang2 = 0
+                        pass
+
+                    # print("data_old", scan_data[0:24])
+                    self.reset_cont(10-val_a_cambiar)
+                    print("contador", self.cont)
+                    if self.action_done_past != self.action_done and self.action_done_past == 2:
+                        for i in range(self.cont):
+                            scan_data[val_a_cambiar+i]  = self.scan_data_past[val_a_cambiar+i]
+                            scan_data[23-val_a_cambiar-i] = self.scan_data_past[23-val_a_cambiar-i]
+                        
+                    elif self.action_done < 2 :
+                        if abs(self.action_done - self.action_done_past) == 1:    #cuando viene de la accion 1
+                            for i in range(self.cont):
+                                scan_data[23-val_a_cambiar-i] = self.scan_data_past[23-val_a_cambiar-i]
+
+                        elif abs(self.action_done - self.action_done_past) > 1:    #cuando viene de la accion 3, 4
+                            for i in range(self.cont):
+                                scan_data[val_a_cambiar+i] = self.scan_data_past[val_a_cambiar+i-1]
+
+                        elif self.action_done == 0 and self.action_done_past == self.action_done:
+                            # if self.action_done_past == self.action_done:  
+                            for i in range(self.cont):
+                                scan_data[23-val_a_cambiar-i] = self.scan_data_past[23-val_a_cambiar-i+1]
+                        
+                        elif self.action_done == 1 and self.action_done_past == self.action_done:
+                            # # if self.action_done_past == self.action_done:  
+                            for i in range(self.cont):
+                                # scan_data[val_a_cambiar+i]  = self.get_point_position(self.scan_data_past[val_a_cambiar+i-1], dist_rec, (val_a_cambiar+i-1), -ang2)
+                                scan_data[23-val_a_cambiar-i] = self.get_point_position(self.scan_data_past[23-val_a_cambiar-i+1], dist_lineal, (23-val_a_cambiar-i+1), ang2)
+
+                    
+                    elif self.action_done == 2:                              
+                        if self.action_done_past == self.action_done:
+                            for i in range(self.cont):
+                                scan_data[val_a_cambiar+i]  = self.get_point_position(self.scan_data_past[val_a_cambiar+i-1], dist_rec, (val_a_cambiar+i-1), ang2)
+                                scan_data[23-val_a_cambiar-i] = self.get_point_position(self.scan_data_past[23-val_a_cambiar-i+1], dist_rec, (23-val_a_cambiar-i+1), ang2)
+
+                            for j in range(4):
+                                if j == 0 or j == 3:
+                                    scan_data[10+j] = self.scan_data_past[10+j] + (dist_rec/math.cos(math.radians(7.5+15)))
+                                
+                                else:
+                                    scan_data[10+j] = self.scan_data_past[10+j] + (dist_rec/math.cos(math.radians(7.5)))
+                        
+                        elif self.action_done_past < 2:  #cuando viene de la accion 0, 1
+                            for i in range(self.cont):
+                                scan_data[23-val_a_cambiar-i] = self.scan_data_past[23-val_a_cambiar-i]
+                        
+                        elif self.action_done_past > 2:  #cuando viene de la accion 0, 1
+                            for i in range(self.cont):
+                                scan_data[val_a_cambiar+i] = self.scan_data_past[val_a_cambiar+i]
+                        
+
+                    elif self.action_done > 2 :
+                        if abs(self.action_done - self.action_done_past) == 1:    #cuando viene de la accion 4 o 3
+                            for i in range(self.cont):
+                                scan_data[val_a_cambiar+i] = self.scan_data_past[val_a_cambiar+i]
+
+                        elif abs(self.action_done - self.action_done_past) > 1:    #cuando viene de la accion 0, 1
+                            for i in range(self.cont):
+                                scan_data[23-val_a_cambiar-i] = self.scan_data_past[23-val_a_cambiar-i-1]
+
+                        elif self.action_done == 3 and self.action_done_past == self.action_done: 
+                            # if self.action_done_past == self.action_done:               # (ver) esto de ahora es para cuando la accion anterior era 1,2,3 habrian que modificarlo en la condicion anterior 
+                            for i in range(self.cont):
+                                scan_data[val_a_cambiar+i]  = self.get_point_position(self.scan_data_past[val_a_cambiar+i-1], dist_lineal, (val_a_cambiar+i-1), ang2)
+                                    # scan_data[23-val_a_cambiar-i] = self.get_point_position(self.scan_data_past[23-val_a_cambiar-i+1], dist_rec, (23-val_a_cambiar-i+1), -ang2)
+                        
+                        elif self.action_done == 4 and self.action_done_past == self.action_done:
+                            # if self.action_done_past == self.action_done:
+                            for i in range(self.cont):
+                                scan_data[val_a_cambiar+i]  = self.scan_data_past[val_a_cambiar+i-1]
+                                    # scan_data[23-val_a_cambiar-i] = self.scan_data_past[23-val_a_cambiar-i+1]
+
+                            # else: #cuando la accion anterior haya sido 0, 1 (la 2 esta valorada arriba del todo)
+                            #     pass
+                    else:
+                        self.cont = 0
+                
+                else:
+                    self.cont=0
+                    # self.action_done_past = self.action_done
+                    pass
+
+                
+                print("camera")
+                print(scan_data[0:24])
+                # print("laser")
+                # print(scan_data[24:48])
+                
+                self.scan_data_past = scan_data[0:24]    
+
+                self.action_done_past = self.action_done
 
                 self.__step_cache      = self.step
                 self.__scan_data_cache = scan_data
                 self.force_update      = False
 
-        # print(scan_data)
         return scan_data
 
+    def get_point_position(self, lado1, lado2, ang, ang2):
+        #formula para calcular el lado de un triangulo no rectangulo, sabiendo dos lados y un angulo
+        point_position = np.sqrt(math.pow(lado1,2)+math.pow(lado2,2)-(2*lado1*lado2*math.cos(math.radians(((ang)*15)+7.5)+ang2)))   
+        return point_position
+    
+
+    def reset_cont(self, num_rep):
+        if self.action_done_past == 2 or abs(self.action_done - self.action_done_past) <= 1:   # self.action_done - self.action_done_past) <= 1 contempla cuando (self.action_done == self.action_done_past) y hace acciones hacia el mismo lado
+           self.cont+=1
+           if self.cont > num_rep:
+            self.cont = num_rep
+        else:
+           self.cont = 1
+        
     
     def get_Odometry(self, odom):
         '''

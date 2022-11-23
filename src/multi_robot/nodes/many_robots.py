@@ -25,16 +25,17 @@ path1= "/home/pablo/catkin_ws/src/multi_robot/worlds/goal_box/model"
 
 out_str= "<launch>\n"+\
        '<param name="robot_description"\n'+\
-       'command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_burger_1cam180.urdf.xacro" />"\n'
+       'command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_burger_1cam90.urdf.xacro" />"\n'
 x_initial=int(arguments[2][0])
 xp_initial= 0.5
 xy_initial= -1.3
 Y_initial= 3.13
 for i in range(x_initial,agents+x_initial,1):
-  ra=random.choice([-1,1,-2,2])
+  # ra=random.choice([-1,1,-2,2])
+  ra = 7
   out_str += '<group ns="'+"agent"+str(i)+'">\n'+\
   '<param name="tf_prefix" value="'+"agent"+str(i)+'_tf" />\n'+\
-  '<include file="$(find multi_robot)/launch/one_agent_1cam180.launch" >\n' + \
+  '<include file="$(find multi_robot)/launch/one_agent_1cam90.launch" >\n' + \
   '<arg name="init_pose" value="-x '+str(-5+ra)+' -y '+str(1+ra)+' -z 0 -Y '+str(Y_initial+i*0.5)+'" />\n'+\
   '<arg name="agent_name"  value="'+"agent"+str(i)+'" />\n'+\
   '</include>\n'+\

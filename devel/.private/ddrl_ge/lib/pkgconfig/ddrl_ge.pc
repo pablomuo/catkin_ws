@@ -1,0 +1,8 @@
+prefix=/home/pablo/catkin_ws/devel/.private/ddrl_ge
+
+Name: ddrl_ge
+Description: Description of ddrl_ge
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
