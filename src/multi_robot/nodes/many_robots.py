@@ -32,11 +32,12 @@ xy_initial= -1.3
 Y_initial= 3.13
 for i in range(x_initial,agents+x_initial,1):
   # ra=random.choice([-1,1,-2,2])
-  ra = 7
+  ra = 4
+  ra1 = -2
   out_str += '<group ns="'+"agent"+str(i)+'">\n'+\
   '<param name="tf_prefix" value="'+"agent"+str(i)+'_tf" />\n'+\
   '<include file="$(find multi_robot)/launch/one_agent_1cam90.launch" >\n' + \
-  '<arg name="init_pose" value="-x '+str(-5+ra)+' -y '+str(1+ra)+' -z 0 -Y '+str(Y_initial+i*0.5)+'" />\n'+\
+  '<arg name="init_pose" value="-x '+str(-5+ra)+' -y '+str(1+ra1)+' -z 0 -Y '+str(Y_initial+i*0.5)+'" />\n'+\
   '<arg name="agent_name"  value="'+"agent"+str(i)+'" />\n'+\
   '</include>\n'+\
   '</group>\n\n'

@@ -37,8 +37,15 @@ class Target(object):
         # FOR BOX
         self.ID=ID
         self.ini=random.choice(range(4))
-        self.init_goal_x = [4,-2.5,-2,4][self.ini]
-        self.init_goal_y = [4,0.5,-3,-1][self.ini]
+        #para un robot en cada habitacion (bueno)
+        # self.init_goal_x = [4,-2.5,-2,4][self.ID]
+        # self.init_goal_y = [4,3.5,-3,-1][self.ID]
+        # antiguo
+        # self.init_goal_x = [4,-2.5,-2,4][self.ini]
+        # self.init_goal_y = [4,0.5,-3,-1][self.ini]
+        #para una sola habitacion, la original
+        self.init_goal_x = -0.5
+        self.init_goal_y = 0.5
         # FOR CORRIDOR
         # self.init_goal_x = 0.5
         # self.init_goal_y = 0.5
@@ -72,8 +79,13 @@ class Target(object):
             self.deleteModel()
         while position_check:
             if self.ID==0:
-                goal_x_list = [9.5, -9.2, -9.2, 4.8, 3.3, 4.3, 2.3, 9.6]
-                goal_y_list = [8.7,  8.8,    5, 2.3, 4.3, 8.8, 1.9, 1.9]
+                # dos habitaciones, el creado por nosotros
+                # goal_x_list = [9.5, -9.2, -9.2, 4.8, 3.3, 3.3, 2.3, 9.6]
+                # goal_y_list = [8.7,  8.8,    6, 2.3, 4.3, 8.8, 1.9, 1.9]
+                
+                #una sola habitacion, la original
+                goal_x_list = [-1, 0.2, -1.3, -1, -1.9,  0.5, 0.5, 0, -0.1, -2,  -0.5]
+                goal_y_list = [-1.7, 1.5, -0.9,  1,  1.1, -1.5, 1.8, -1, 1.6, -0.8, 0.5]
                 # goal_x_list = [-2,   1,      -3]
                 # goal_y_list = [-3.2, 3.2,  10]
                 # goal_x_list = [-2,   1,   2, -2, 3, -3, -1.5, 1, 2,   -2,   3,   4,   -4,-4,-4.5, 3,  -2.3, 2,   -3, -3.5, 1.5,  0 ,  4,-1.5, 3, 3,    0,  -4,    4,1.5    ,-3]

@@ -36,7 +36,7 @@ episodes           = 19000
 episode_step       = 60000
 e                  = 0
 global_step        = 0
-number_episode     = 0
+number_episode     = 1020
 positions          = []
 headings           = []
 number_rooms       = 1
@@ -53,8 +53,8 @@ if rank==0:
     #cam = '_1cam180'
 
     #Delete old folders of goal_box
-    os.system('rm -r /home/pablo/catkin_ws/src/multi_robot/worlds/goal_box_'+"*")
-    os.system('rm -r /home/pablo/catkin_ws/src/multi_robot/save_model/en'+"*")
+    # os.system('rm -r /home/pablo/catkin_ws/src/multi_robot/worlds/goal_box_'+"*")
+    # os.system('rm -r /home/pablo/catkin_ws/src/multi_robot/save_model/en'+"*")
     #Creates a file with the specified number of robots and targets
     os.system('python many_robots.py'+" "+str([number_robot,number_rooms]))
     # os.system('python many_robots_new.py'+" "+str(number_robot)+" "+str(number_rooms)+" "+cam)
@@ -125,8 +125,11 @@ if rank>((number_rooms*2)-1):
                 #if comm.Iprobe(source=1,tag=23+1000):
                 action = comm.recv(source=1, tag=23+1000)
                 sys.stdout.flush()
+                agents.action = action
                 print("recivo act ")
                 evolve_rule = comm.recv(source=1, tag=33+1000)
+                sys.stdout.flush()
+                agents.evolve_rule = agents
                 print("recibo evolve")
                 q_value = comm.recv(source=1, tag=43+1000)
                 sys.stdout.flush()

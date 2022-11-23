@@ -48,7 +48,7 @@ class ReinforcementNetwork(object):
         self.memory_D           = deque(maxlen=100000)
         self.memory_GT          = deque(maxlen=100000)
         self.memory_EPS         = deque(maxlen=100000)
-        self.load_model         = load
+        self.load_model         = True
         self.loss               = 'mse'
         self.activation_output  = 'linear'
         self.activation_layer   = 'relu'

@@ -3,8 +3,8 @@
     <arg name="use_sim_time" value="true"/>
     <arg name="debug" value="false"/>
     <arg name="gui" value="true" />
-    <!-- <arg name="world_name" value="$(find multi_robot)/worlds/turtlebot3_box_multi_rooms_all_obs_for1_room.world"/> -->
-    <arg name="world_name" value="$(find multi_robot)/worlds/2rooms_closed.world"/>
+    <arg name="world_name" value="$(find multi_robot)/worlds/turtlebot3_modified_box_2.world"/>
+    <!-- <arg name="world_name" value="$(find multi_robot)/worlds/2rooms_closed.world"/> -->
   </include>
 
   <include file="$(find multi_robot)/launch/multi_agent.launch"/>

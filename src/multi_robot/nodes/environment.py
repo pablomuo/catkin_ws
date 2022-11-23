@@ -179,8 +179,14 @@ class Behaviour(object):
             set_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
             self.state_msg.model_name=self.agent_name
             self.state_msg.reference_frame = 'world'  # ''ground_plane'
-            self.state_msg.pose.position.x = x[idx]
-            self.state_msg.pose.position.y = y[idx]
+            
+            #para dos habitaciones (bueno)
+            # self.state_msg.pose.position.x = x[idx]
+            # self.state_msg.pose.position.y = y[idx]
+            #para solo una habitacion 
+            self.state_msg.pose.position.x = -1
+            self.state_msg.pose.position.y = -1
+            
             self.state_msg.pose.position.z = 0
             self.state_msg.pose.orientation.w = pi*self.number_agents
             resp = set_state(self.state_msg )
